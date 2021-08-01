@@ -1,0 +1,78 @@
+/* Fuel sensor code 
+ * Matthew Austen 
+ * All i ask is you sub the Parahooners on youtube :-) https://www.youtube.com/c/Parahooners
+ * Using as esp32 board connected to the TTGO 3v out Ground and Pin25 which is the Dac Pin
+ * as the pulses from the flow wheel increase the Dac pin is set to voltage for the TTGO to read this is then transmitted to the XC Guide app where you need to set up the
+ * basics - this sketch is set to 12ltrs and the pulses are the amount it takes for 1000ml or 1ltr this is then multiplied by the 
+ * liters and divided by the calulate which is the DAC pin value - the DAC pin ranges from 0 to 255 this wave is ussed over PPM for it sine wave which can be read
+ * with out error by the TTGO
+ * 
+ * The flow senosr is connected via the 3v and ground and the pulse pin is connected to pin 23 as an interupt 
+ * every time the pin is logged as high the pulse is counted in the flow counter / if the flow counter is less than 5 the sensors becomes static
+ * this has been done as the value of the DAC will reset showing a 255 value..
+ 
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files.
+  
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software. 
+
+  https://www.youtube.com/c/Parahooners
+
+  https://www.youtube.com/c/Parahooners
+
+  https://www.youtube.com/c/Parahooners
+ */
+ 
+
+
+#include <driver/dac.h>
+#define DAC1 25
+
+
+
+const int  FlowPin = 23; 
+int FlowCounter = 0;   // counter for the number of button presses 
+int Calculate = 255; // this is the DAC Resolution
+int pulses = 2020;  // pulese per 1000ml
+int Liters = 12; // how many liters are you flying with
+int Resolution = Liters * pulses / Calculate ; 
+int FlowState = 0;         // current state of the flow sensor
+int LastFlowState = 0;     // previous state of the flow sensor
+
+void setup() {
+  Serial.begin(9600);
+  
+  pinMode(FlowPin, INPUT); //Sets sensor as input
+  
+}
+void loop() {
+  
+  FlowState = digitalRead(FlowPin);
+     // compare the buttonState to its previous state
+  if (FlowState != LastFlowState) {
+    // if the state has changed, increment the counter
+    if (FlowState == HIGH) {
+      // if the current state is HIGH then the button went from off to on:
+      FlowCounter++;
+      Serial.println("");
+      Serial.print("Flow pulse: "); // use this to see how many pulses to 1000lm then set the int Variable to this amount
+      Serial.println(FlowCounter);
+    } else {
+      Serial.println("no pulses");
+    }
+    // Delay a little bit to avoid bouncing
+    delay(50);
+  }
+  // save the current state as the last state, for next time through the loop
+  LastFlowState = FlowState;
+
+  // Generate a Sine wave
+  float Value = Calculate - (FlowCounter / Resolution) ; //255= 3.3V 128=1.65V
+
+   if (Value > 4 ) { dacWrite(DAC1, Value);}
+    Serial.print("DAC Value: "); // use this to see how many pulses to 1000lm then set the int Variable to this amount
+      Serial.println(Value);
+  
+  
+}
